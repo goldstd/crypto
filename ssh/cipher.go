@@ -18,6 +18,7 @@ import (
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/internal/poly1305"
+	"golang.org/x/crypto/sm4"
 )
 
 const (
@@ -41,6 +42,14 @@ type noneCipher struct{}
 
 func (c noneCipher) XORKeyStream(dst, src []byte) {
 	copy(dst, src)
+}
+
+func newSM4CTR(key, iv []byte) (cipher.Stream, error) {
+	c, err := sm4.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewCTR(c, iv), nil
 }
 
 func newAESCTR(key, iv []byte) (cipher.Stream, error) {
@@ -98,6 +107,7 @@ func streamCipherMode(skip int, createFunc func(key, iv []byte) (cipher.Stream, 
 var cipherModes = map[string]*cipherMode{
 	// Ciphers from RFC 4344, which introduced many CTR-based ciphers. Algorithms
 	// are defined in the order specified in the RFC.
+	"sm4128-ctr": {16, sm4.BlockSize, streamCipherMode(0, newSM4CTR)},
 	"aes128-ctr": {16, aes.BlockSize, streamCipherMode(0, newAESCTR)},
 	"aes192-ctr": {24, aes.BlockSize, streamCipherMode(0, newAESCTR)},
 	"aes256-ctr": {32, aes.BlockSize, streamCipherMode(0, newAESCTR)},
