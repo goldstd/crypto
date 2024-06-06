@@ -109,6 +109,10 @@ func (c *connection) clientHandshake(dialAddress string, config *ClientConfig) e
 		return err
 	}
 
+	if config.AlgorithmsCallback != nil {
+		config.AlgorithmsCallback(c.transport.Algorithms())
+	}
+
 	c.sessionID = c.transport.getSessionID()
 	return c.clientAuthenticate(config)
 }
@@ -239,7 +243,12 @@ type ClientConfig struct {
 	//
 	// A Timeout of zero means no timeout.
 	Timeout time.Duration
+
+	// AlgorithmsCallback 定义了，算法协商后，回调函数，用于打印协商后的算法
+	AlgorithmsCallback AlgorithmsCallback
 }
+
+type AlgorithmsCallback func(Algorithms)
 
 // InsecureIgnoreHostKey returns a function that can be used for
 // ClientConfig.HostKeyCallback to accept any host key. It should

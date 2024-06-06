@@ -401,6 +401,26 @@ func ecHash(curve elliptic.Curve) crypto.Hash {
 
 var kexAlgoMap = map[string]kexAlgorithm{}
 
+func DefinedKexAlgos() []string {
+	algos := make([]string, 0, len(kexAlgoMap))
+
+	added := make(map[string]bool)
+	for _, k := range preferredKexAlgos {
+		if _, ok := kexAlgoMap[k]; ok {
+			algos = append(algos, k)
+			added[k] = true
+		}
+	}
+
+	for k := range kexAlgoMap {
+		if !added[k] {
+			algos = append(algos, k)
+		}
+	}
+
+	return algos
+}
+
 func init() {
 	// This is the group called diffie-hellman-group1-sha1 in
 	// RFC 4253 and Oakley Group 2 in RFC 2409.

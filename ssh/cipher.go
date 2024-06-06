@@ -107,7 +107,7 @@ func streamCipherMode(skip int, createFunc func(key, iv []byte) (cipher.Stream, 
 var cipherModes = map[string]*cipherMode{
 	// Ciphers from RFC 4344, which introduced many CTR-based ciphers. Algorithms
 	// are defined in the order specified in the RFC.
-	"sm4128-ctr": {16, sm4.BlockSize, streamCipherMode(0, newSM4CTR)},
+	"sm4-ctr":    {16, sm4.BlockSize, streamCipherMode(0, newSM4CTR)},
 	"aes128-ctr": {16, aes.BlockSize, streamCipherMode(0, newAESCTR)},
 	"aes192-ctr": {24, aes.BlockSize, streamCipherMode(0, newAESCTR)},
 	"aes256-ctr": {32, aes.BlockSize, streamCipherMode(0, newAESCTR)},

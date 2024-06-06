@@ -86,7 +86,7 @@ var supportedHostKeyAlgos = []string{
 // This is based on RFC 4253, section 6.4, but with hmac-md5 variants removed
 // because they have reached the end of their useful life.
 var supportedMACs = []string{
-	"hmac-sha2-256-etm@openssh.com", "hmac-sha2-512-etm@openssh.com", "hmac-sha2-256", "hmac-sha2-512", "hmac-sha1", "hmac-sha1-96",
+	"hmac-sm3", "hmac-sha2-256-etm@openssh.com", "hmac-sha2-512-etm@openssh.com", "hmac-sha2-256", "hmac-sha2-512", "hmac-sha1", "hmac-sha1-96",
 }
 
 var supportedCompressions = []string{compressionNone}
@@ -202,6 +202,18 @@ type algorithms struct {
 	hostKey string
 	w       directionAlgorithms
 	r       directionAlgorithms
+}
+type Algorithms struct {
+	Kex     string              `json:"kex"`
+	HostKey string              `json:"hostKey"`
+	W       DirectionAlgorithms `json:"w"`
+	R       DirectionAlgorithms `json:"r"`
+}
+
+type DirectionAlgorithms struct {
+	Cipher      string `json:"cipher"`
+	MAC         string `json:"mac"`
+	Compression string `json:"compression"`
 }
 
 func findAgreedAlgorithms(isClient bool, clientKexInit, serverKexInit *kexInitMsg) (algs *algorithms, err error) {

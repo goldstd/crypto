@@ -166,6 +166,22 @@ func newServerTransport(conn keyingTransport, clientVersion, serverVersion []byt
 	return t
 }
 
+func (t *handshakeTransport) Algorithms() Algorithms {
+	return Algorithms{
+		Kex:     t.algorithms.kex,
+		HostKey: t.algorithms.hostKey,
+		W: DirectionAlgorithms{
+			Cipher:      t.algorithms.w.Cipher,
+			MAC:         t.algorithms.w.MAC,
+			Compression: t.algorithms.w.Compression,
+		},
+		R: DirectionAlgorithms{
+			Cipher:      t.algorithms.r.Cipher,
+			MAC:         t.algorithms.r.MAC,
+			Compression: t.algorithms.r.Compression,
+		},
+	}
+}
 func (t *handshakeTransport) getSessionID() []byte {
 	return t.sessionID
 }

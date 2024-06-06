@@ -11,6 +11,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"golang.org/x/crypto/sm3"
 	"hash"
 )
 
@@ -61,6 +62,9 @@ var macModes = map[string]*macMode{
 	}},
 	"hmac-sha1": {20, false, func(key []byte) hash.Hash {
 		return hmac.New(sha1.New, key)
+	}},
+	"hmac-sm3": {32, false, func(key []byte) hash.Hash {
+		return hmac.New(sm3.New, key)
 	}},
 	"hmac-sha1-96": {20, false, func(key []byte) hash.Hash {
 		return truncatingMAC{12, hmac.New(sha1.New, key)}
