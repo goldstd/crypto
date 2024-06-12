@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"log"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/internal/poly1305"
@@ -160,7 +161,19 @@ type streamPacketCipher struct {
 
 // readCipherPacket reads and decrypt a single packet from the reader argument.
 func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byte, error) {
+	cp := &CipherPacket{
+		SeqNum: seqNum,
+	}
+	sp := SshPacket{
+		Type:  SshPacketTypeCipherPacket,
+		Value: cp,
+	}
+	defer func() {
+		log.Printf("Read %s", JSON(sp))
+	}()
+
 	if _, err := io.ReadFull(r, s.prefix[:]); err != nil {
+		sp.Error = err.Error()
 		return nil, err
 	}
 
@@ -173,7 +186,9 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	}
 
 	length := binary.BigEndian.Uint32(s.prefix[0:4])
+	cp.PacketLength = length
 	paddingLength := uint32(s.prefix[4])
+	cp.PaddingLength = paddingLength
 
 	var macSize uint32
 	if s.mac != nil {
@@ -190,11 +205,15 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	}
 
 	if length <= paddingLength+1 {
-		return nil, errors.New("ssh: invalid packet length, packet too small")
+		err := errors.New("ssh: invalid packet length, packet too small")
+		sp.Error = err.Error()
+		return nil, err
 	}
 
 	if length > maxPacket {
-		return nil, errors.New("ssh: invalid packet length, packet too large")
+		err := errors.New("ssh: invalid packet length, packet too large")
+		sp.Error = err.Error()
+		return nil, err
 	}
 
 	// the maxPacket check above ensures that length-1+macSize
@@ -210,6 +229,7 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	}
 	mac := s.packetData[length-1:]
 	data := s.packetData[:length-1]
+	cp.Mac = mac
 
 	if s.mac != nil && s.etm {
 		s.mac.Write(data)
@@ -226,8 +246,89 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 			return nil, errors.New("ssh: MAC failure")
 		}
 	}
+	payload := s.packetData[:length-paddingLength-1]
+	cp.Payload = payload
+	cp.MsgCode = payload[0]
+	cp.MsgName = parseMsgName(payload[0])
 
-	return s.packetData[:length-paddingLength-1], nil
+	return payload, nil
+}
+
+func parseMsgName(code byte) string {
+	switch code {
+	case msgChannelExtendedData:
+		return "channelExtendedData"
+	case msgDisconnect:
+		return "disconnectMsg"
+	case msgServiceRequest:
+		return "serviceRequestMsg"
+	case msgServiceAccept:
+		return "serviceAcceptMsg"
+	case msgExtInfo:
+		return "extInfoMsg"
+	case msgKexInit:
+		return "kexInitMsg"
+	case msgKexDHInit:
+		return "kexDHInitMsg"
+	case msgKexDHReply:
+		return "kexDHReplyMsg"
+	case msgUserAuthRequest:
+		return "userAuthRequestMsg"
+	case msgUserAuthSuccess:
+		return "userAuthSuccessMsg"
+	case msgUserAuthFailure:
+		return "userAuthFailureMsg"
+	case msgUserAuthPubKeyOk:
+		return "userAuthPubKeyOkMsg"
+	case msgGlobalRequest:
+		return "globalRequestMsg"
+	case msgRequestSuccess:
+		return "globalRequestSuccessMsg"
+	case msgRequestFailure:
+		return "globalRequestFailureMsg"
+	case msgChannelOpen:
+		return "channelOpenMsg"
+	case msgChannelData:
+		return "channelDataMsg"
+	case msgChannelOpenConfirm:
+		return "channelOpenConfirmMsg"
+	case msgChannelOpenFailure:
+		return "channelOpenFailureMsg"
+	case msgChannelWindowAdjust:
+		return "windowAdjustMsg"
+	case msgChannelEOF:
+		return "channelEOFMsg"
+	case msgChannelClose:
+		return "channelCloseMsg"
+	case msgChannelRequest:
+		return "channelRequestMsg"
+	case msgChannelSuccess:
+		return "channelRequestSuccessMsg"
+	case msgChannelFailure:
+		return "channelRequestFailureMsg"
+	case msgUserAuthGSSAPIToken:
+		return "userAuthGSSAPIToken"
+	case msgUserAuthGSSAPIMIC:
+		return "userAuthGSSAPIMIC"
+	case msgUserAuthGSSAPIErrTok:
+		return "userAuthGSSAPIErrTok"
+	case msgUserAuthGSSAPIError:
+		return "userAuthGSSAPIError"
+	default:
+		return "unexpectedMessage"
+	}
+}
+
+type CipherPacket struct {
+	SeqNum        uint32 `json:"seqNum"`
+	PacketLength  uint32 `json:"packetLength,omitempty"`
+	PaddingLength uint32 `json:"paddingLength,omitempty"`
+	Payload       []byte `json:"payload,omitempty"`
+	Padding       []byte `json:"padding,omitempty"`
+	Mac           []byte `json:"mac,omitempty"`
+
+	MsgCode uint8  `json:"msgCode,omitempty"`
+	MsgName string `json:"msgName,omitempty"`
 }
 
 // writeCipherPacket encrypts and sends a packet of data to the writer argument

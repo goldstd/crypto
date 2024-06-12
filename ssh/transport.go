@@ -7,6 +7,7 @@ package ssh
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -307,6 +308,31 @@ func generateKeyMaterial(out, tag []byte, r *kexResult) {
 
 const packageVersion = "SSH-2.0-Go"
 
+type SshPacket struct {
+	Type  SshPacketType `json:"type"`
+	Value any           `json:"value,omitempty"`
+	Error string        `json:"error,omitempty"`
+}
+
+type SshPacketType string
+
+const (
+	SshPacketTypeCipherPacket SshPacketType = "CipherPacket"
+	SshPacketTypeVersionLine SshPacketType = "VersionLine"
+)
+
+func JSON(v any) []byte {
+	j, _ := json.Marshal(v)
+	return j
+}
+
+func ErrorString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
 // Sends and receives a version line.  The versionLine string should
 // be US ASCII, start with "SSH-2.0-", and should not include a
 // newline. exchangeVersions returns the other side's version line.
@@ -321,11 +347,24 @@ func exchangeVersions(rw io.ReadWriter, versionLine []byte) (them []byte, err er
 			return nil, errors.New("ssh: junk character in version line")
 		}
 	}
-	if _, err = rw.Write(append(versionLine, '\r', '\n')); err != nil {
+	vl := append(versionLine, '\r', '\n')
+	log.Printf("Send %s", JSON(
+		SshPacket{
+			Type:  SshPacketTypeVersionLine,
+			Value: string(vl),
+		}))
+	if _, err = rw.Write(vl); err != nil {
 		return
 	}
 
 	them, err = readVersion(rw)
+	log.Printf("Send %s", JSON(
+		SshPacket{
+			Type:  SshPacketTypeVersionLine,
+			Value: string(them) + "\r\n",
+			Error: ErrorString(err),
+		}))
+
 	return them, err
 }
 
