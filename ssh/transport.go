@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"os"
 )
 
 // debugTransport if set, will print packet types as they go over the
@@ -308,17 +309,17 @@ func generateKeyMaterial(out, tag []byte, r *kexResult) {
 
 const packageVersion = "SSH-2.0-Go"
 
-type SshPacket struct {
-	Type  SshPacketType `json:"type"`
-	Value any           `json:"value,omitempty"`
-	Error string        `json:"error,omitempty"`
+type Packet struct {
+	Type  PacketType `json:"type"`
+	Value any        `json:"value,omitempty"`
+	Error string     `json:"error,omitempty"`
 }
 
-type SshPacketType string
+type PacketType string
 
 const (
-	SshPacketTypeCipherPacket SshPacketType = "CipherPacket"
-	SshPacketTypeVersionLine SshPacketType = "VersionLine"
+	PacketTypeCipherPacket PacketType = "CipherPacket"
+	PacketTypeVersionLine  PacketType = "VersionLine"
 )
 
 func JSON(v any) []byte {
@@ -332,6 +333,8 @@ func ErrorString(err error) string {
 	}
 	return err.Error()
 }
+
+var Verbose = os.Getenv("SSH_DEBUG") == "1"
 
 // Sends and receives a version line.  The versionLine string should
 // be US ASCII, start with "SSH-2.0-", and should not include a
@@ -348,23 +351,26 @@ func exchangeVersions(rw io.ReadWriter, versionLine []byte) (them []byte, err er
 		}
 	}
 	vl := append(versionLine, '\r', '\n')
-	log.Printf("Send %s", JSON(
-		SshPacket{
-			Type:  SshPacketTypeVersionLine,
-			Value: string(vl),
-		}))
+	if Verbose {
+		log.Printf("Sent %s", JSON(
+			Packet{
+				Type:  PacketTypeVersionLine,
+				Value: string(vl),
+			}))
+	}
 	if _, err = rw.Write(vl); err != nil {
 		return
 	}
 
 	them, err = readVersion(rw)
-	log.Printf("Send %s", JSON(
-		SshPacket{
-			Type:  SshPacketTypeVersionLine,
-			Value: string(them) + "\r\n",
-			Error: ErrorString(err),
-		}))
-
+	if Verbose {
+		log.Printf("Read %s", JSON(
+			Packet{
+				Type:  PacketTypeVersionLine,
+				Value: string(them) + "\r\n",
+				Error: ErrorString(err),
+			}))
+	}
 	return them, err
 }
 

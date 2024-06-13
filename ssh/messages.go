@@ -51,19 +51,19 @@ func (d *disconnectMsg) Error() string {
 const msgKexInit = 20
 
 type kexInitMsg struct {
-	Cookie                  [16]byte `sshtype:"20"`
-	KexAlgos                []string
-	ServerHostKeyAlgos      []string
-	CiphersClientServer     []string
-	CiphersServerClient     []string
-	MACsClientServer        []string
-	MACsServerClient        []string
-	CompressionClientServer []string
-	CompressionServerClient []string
-	LanguagesClientServer   []string
-	LanguagesServerClient   []string
-	FirstKexFollows         bool
-	Reserved                uint32
+	Cookie                  [16]byte `sshtype:"20" json:"cookie"`
+	KexAlgos                []string `json:"kexAlgos"`
+	ServerHostKeyAlgos      []string `json:"serverHostKeyAlgos"`
+	CiphersClientServer     []string `json:"ciphersClientServer"`
+	CiphersServerClient     []string `json:"ciphersServerClient"`
+	MACsClientServer        []string `json:"MACsClientServer"`
+	MACsServerClient        []string `json:"MACsServerClient"`
+	CompressionClientServer []string `json:"compressionClientServer"`
+	CompressionServerClient []string `json:"compressionServerClient"`
+	LanguagesClientServer   []string `json:"languagesClientServer,omitempty"`
+	LanguagesServerClient   []string `json:"languagesServerClient,omitempty"`
+	FirstKexFollows         bool     `json:"firstKexFollows,omitempty"`
+	Reserved                uint32   `json:"reserved,omitempty"`
 }
 
 // See RFC 4253, section 8.

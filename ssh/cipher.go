@@ -164,13 +164,15 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	cp := &CipherPacket{
 		SeqNum: seqNum,
 	}
-	sp := SshPacket{
-		Type:  SshPacketTypeCipherPacket,
+	sp := Packet{
+		Type:  PacketTypeCipherPacket,
 		Value: cp,
 	}
-	defer func() {
-		log.Printf("Read %s", JSON(sp))
-	}()
+	if Verbose {
+		defer func() {
+			log.Printf("Read %s", JSON(sp))
+		}()
+	}
 
 	if _, err := io.ReadFull(r, s.prefix[:]); err != nil {
 		sp.Error = err.Error()
@@ -247,9 +249,13 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 		}
 	}
 	payload := s.packetData[:length-paddingLength-1]
-	cp.Payload = payload
-	cp.MsgCode = payload[0]
-	cp.MsgName = parseMsgName(payload[0])
+
+	if Verbose {
+		cp.Payload = payload
+		cp.MsgCode = payload[0]
+		cp.MsgName = parseMsgName(payload[0])
+		cp.Msg, _ = decode(payload)
+	}
 
 	return payload, nil
 }
@@ -329,12 +335,33 @@ type CipherPacket struct {
 
 	MsgCode uint8  `json:"msgCode,omitempty"`
 	MsgName string `json:"msgName,omitempty"`
+	Msg     any    `json:"msg,omitempty"`
 }
 
 // writeCipherPacket encrypts and sends a packet of data to the writer argument
 func (s *streamPacketCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand io.Reader, packet []byte) error {
+	cp := &CipherPacket{
+		SeqNum:  seqNum,
+		Payload: packet,
+	}
+
+	sp := Packet{
+		Type:  PacketTypeCipherPacket,
+		Value: cp,
+	}
+	if Verbose {
+		cp.MsgCode = packet[0]
+		cp.MsgName = parseMsgName(packet[0])
+		cp.Msg, _ = decode(packet)
+
+		defer func() {
+			log.Printf("Write %s", JSON(sp))
+		}()
+	}
 	if len(packet) > maxPacket {
-		return errors.New("ssh: packet too large")
+		err := errors.New("ssh: packet too large")
+		sp.Error = err.Error()
+		return err
 	}
 
 	aadlen := 0
@@ -349,6 +376,9 @@ func (s *streamPacketCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand 
 	}
 
 	length := len(packet) + 1 + paddingLength
+	cp.PacketLength = uint32(length)
+	cp.PaddingLength = uint32(paddingLength)
+
 	binary.BigEndian.PutUint32(s.prefix[:], uint32(length))
 	s.prefix[4] = byte(paddingLength)
 	padding := s.padding[:paddingLength]
@@ -403,6 +433,7 @@ func (s *streamPacketCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand 
 
 	if s.mac != nil {
 		s.macResult = s.mac.Sum(s.macResult[:0])
+		cp.Mac = s.macResult
 		if _, err := w.Write(s.macResult); err != nil {
 			return err
 		}
