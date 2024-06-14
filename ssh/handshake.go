@@ -654,6 +654,9 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 	if err != nil {
 		return err
 	}
+	if Debug {
+		log.Printf("AgreedAlgorithms: %s", JSON(t.Algorithms()))
+	}
 
 	if t.sessionID == nil && ((isClient && contains(serverInit.KexAlgos, kexStrictServer)) || (!isClient && contains(clientInit.KexAlgos, kexStrictClient))) {
 		t.strictMode = true
@@ -701,6 +704,10 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 		t.sessionID = result.H
 	}
 	result.SessionID = t.sessionID
+
+	if Debug {
+		log.Printf("kexResult: %s", JSON(result))
+	}
 
 	if err := t.conn.prepareKeyChange(t.algorithms, result); err != nil {
 		return err

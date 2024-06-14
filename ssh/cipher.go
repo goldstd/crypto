@@ -168,7 +168,7 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 		Type:  PacketTypeCipherPacket,
 		Value: cp,
 	}
-	if Verbose {
+	if Debug {
 		defer func() {
 			log.Printf("Read %s", JSON(sp))
 		}()
@@ -250,11 +250,12 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	}
 	payload := s.packetData[:length-paddingLength-1]
 
-	if Verbose {
+	if Debug {
 		cp.Payload = payload
+		cp.PayloadLen = len(payload)
 		cp.MsgCode = payload[0]
 		cp.MsgName = parseMsgName(payload[0])
-		cp.Msg, _ = decode(payload)
+		cp.Msg, _ = decodeDebug(payload)
 	}
 
 	return payload, nil
@@ -278,6 +279,8 @@ func parseMsgName(code byte) string {
 		return "kexDHInitMsg"
 	case msgKexDHReply:
 		return "kexDHReplyMsg"
+	case msgNewKeys:
+		return "newKeys"
 	case msgUserAuthRequest:
 		return "userAuthRequestMsg"
 	case msgUserAuthSuccess:
@@ -330,6 +333,7 @@ type CipherPacket struct {
 	PacketLength  uint32 `json:"packetLength,omitempty"`
 	PaddingLength uint32 `json:"paddingLength,omitempty"`
 	Payload       []byte `json:"payload,omitempty"`
+	PayloadLen    int    `json:"payloadLen"`
 	Padding       []byte `json:"padding,omitempty"`
 	Mac           []byte `json:"mac,omitempty"`
 
@@ -341,18 +345,19 @@ type CipherPacket struct {
 // writeCipherPacket encrypts and sends a packet of data to the writer argument
 func (s *streamPacketCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand io.Reader, packet []byte) error {
 	cp := &CipherPacket{
-		SeqNum:  seqNum,
-		Payload: packet,
+		SeqNum:     seqNum,
+		Payload:    packet,
+		PayloadLen: len(packet),
 	}
 
 	sp := Packet{
 		Type:  PacketTypeCipherPacket,
 		Value: cp,
 	}
-	if Verbose {
+	if Debug {
 		cp.MsgCode = packet[0]
 		cp.MsgName = parseMsgName(packet[0])
-		cp.Msg, _ = decode(packet)
+		cp.Msg, _ = decodeDebug(packet)
 
 		defer func() {
 			log.Printf("Write %s", JSON(sp))

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -145,8 +146,22 @@ func (t *transport) readPacket() (p []byte, err error) {
 	return p, err
 }
 
+func Pick1(a interface{}, _ error) interface{} {
+	return a
+}
+
 func (s *connectionState) readPacket(r *bufio.Reader, strictMode bool) ([]byte, error) {
 	packet, err := s.packetCipher.readCipherPacket(s.seqNum, r)
+	if Debug {
+		log.Printf("readPacket: %s", JSON(map[string]any{
+			"seqNum":    s.seqNum,
+			"msgName":   parseMsgName(packet[0]),
+			"msg":       Pick1(decodeDebug(packet)),
+			"packet":    packet,
+			"packetLen": len(packet),
+		}))
+	}
+
 	s.seqNum++
 	if err == nil && len(packet) == 0 {
 		err = errors.New("ssh: zero length packet")
@@ -191,10 +206,21 @@ func (t *transport) writePacket(packet []byte) error {
 	if debugTransport {
 		t.printPacket(packet, true)
 	}
+
 	return t.writer.writePacket(t.bufWriter, t.rand, packet, t.strictMode)
 }
 
 func (s *connectionState) writePacket(w *bufio.Writer, rand io.Reader, packet []byte, strictMode bool) error {
+	if Debug {
+		log.Printf("writePacket: %s", JSON(map[string]any{
+			"seqNum":    s.seqNum,
+			"msgName":   parseMsgName(packet[0]),
+			"msg":       Pick1(decodeDebug(packet)),
+			"packet":    packet,
+			"packetLen": len(packet),
+		}))
+	}
+
 	changeKeys := len(packet) > 0 && packet[0] == msgNewKeys
 
 	err := s.packetCipher.writeCipherPacket(s.seqNum, w, rand, packet)
@@ -258,6 +284,14 @@ var (
 	clientKeys = direction{[]byte{'A'}, []byte{'C'}, []byte{'E'}}
 )
 
+type CipherKey struct {
+	Direction  string `json:"direction"`
+	IV         []byte `json:"iv"`
+	Key        []byte `json:"key"`
+	MacKey     []byte `json:"macKey,omitempty"`
+	CipherType string `json:"cipherType"`
+}
+
 // setupKeys sets the cipher and MAC keys from kex.K, kex.H and sessionId, as
 // described in RFC 4253, section 6.4. direction should either be serverKeys
 // (to setup server->client keys) or clientKeys (for client->server keys).
@@ -277,7 +311,26 @@ func newPacketCipher(d direction, algs directionAlgorithms, kex *kexResult) (pac
 		generateKeyMaterial(macKey, d.macKeyTag, kex)
 	}
 
-	return cipherModes[algs.Cipher].create(key, iv, macKey, algs)
+	cipher, err := cipherModes[algs.Cipher].create(key, iv, macKey, algs)
+
+	if Debug {
+		ck := CipherKey{
+			IV: iv, Key: key, MacKey: macKey,
+			CipherType: fmt.Sprintf("%T", cipher),
+		}
+		switch d.ivTag[0] {
+		case 'B':
+			ck.Direction = "serverKeys"
+		case 'A':
+			ck.Direction = "clientKeys"
+		default:
+			ck.Direction = fmt.Sprintf("%#v", d)
+		}
+
+		log.Printf("newPacketCipher: %s", JSON(ck))
+	}
+
+	return cipher, err
 }
 
 // generateKeyMaterial fills out with key material generated from tag, K, H
@@ -334,7 +387,7 @@ func ErrorString(err error) string {
 	return err.Error()
 }
 
-var Verbose = os.Getenv("SSH_DEBUG") == "1"
+var Debug = os.Getenv("SSH_DEBUG") == "1"
 
 // Sends and receives a version line.  The versionLine string should
 // be US ASCII, start with "SSH-2.0-", and should not include a
@@ -351,7 +404,7 @@ func exchangeVersions(rw io.ReadWriter, versionLine []byte) (them []byte, err er
 		}
 	}
 	vl := append(versionLine, '\r', '\n')
-	if Verbose {
+	if Debug {
 		log.Printf("Sent %s", JSON(
 			Packet{
 				Type:  PacketTypeVersionLine,
@@ -363,7 +416,7 @@ func exchangeVersions(rw io.ReadWriter, versionLine []byte) (them []byte, err er
 	}
 
 	them, err = readVersion(rw)
-	if Verbose {
+	if Debug {
 		log.Printf("Read %s", JSON(
 			Packet{
 				Type:  PacketTypeVersionLine,

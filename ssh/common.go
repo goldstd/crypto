@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"sync"
 
@@ -158,10 +159,13 @@ func parseError(tag uint8) error {
 	return fmt.Errorf("ssh: parse error in message type %d", tag)
 }
 
-func findCommon(what string, client []string, server []string) (common string, err error) {
+func findCommon(what string, client, server []string) (common string, err error) {
 	for _, c := range client {
 		for _, s := range server {
 			if c == s {
+				if Debug {
+					log.Printf("findCommon %q: %s", what, c)
+				}
 				return c, nil
 			}
 		}
@@ -211,9 +215,9 @@ type Algorithms struct {
 }
 
 type DirectionAlgorithms struct {
-	Cipher      string `json:"cipher"`
-	MAC         string `json:"mac"`
-	Compression string `json:"compression"`
+	Cipher      string `json:"cipher,omitempty"`
+	MAC         string `json:"mac,omitempty"`
+	Compression string `json:"compression,omitempty"`
 }
 
 func findAgreedAlgorithms(isClient bool, clientKexInit, serverKexInit *kexInitMsg) (algs *algorithms, err error) {

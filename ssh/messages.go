@@ -72,91 +72,97 @@ type kexInitMsg struct {
 const msgKexDHInit = 30
 
 type kexDHInitMsg struct {
-	X *big.Int `sshtype:"30"`
+	X *big.Int `sshtype:"30" json:"x"`
 }
 
 const msgKexECDHInit = 30
 
 type kexECDHInitMsg struct {
-	ClientPubKey []byte `sshtype:"30"`
+	ClientPubKey []byte `sshtype:"30" json:"clientPubKey"`
 }
 
 const msgKexECDHReply = 31
 
 type kexECDHReplyMsg struct {
-	HostKey         []byte `sshtype:"31"`
-	EphemeralPubKey []byte
-	Signature       []byte
+	HostKey         []byte `sshtype:"31" json:"hostKey"`
+	EphemeralPubKey []byte `json:"ephemeralPubKey"`
+	Signature       []byte `json:"signature"`
 }
 
 const msgKexDHReply = 31
 
 type kexDHReplyMsg struct {
-	HostKey   []byte `sshtype:"31"`
-	Y         *big.Int
-	Signature []byte
+	HostKey   []byte   `sshtype:"31" json:"hostKey"`
+	Y         *big.Int `json:"y"`
+	Signature []byte   `json:"signature"`
 }
 
 // See RFC 4419, section 5.
 const msgKexDHGexGroup = 31
 
 type kexDHGexGroupMsg struct {
-	P *big.Int `sshtype:"31"`
-	G *big.Int
+	P *big.Int `sshtype:"31" json:"p"`
+	G *big.Int `json:"g"`
 }
 
 const msgKexDHGexInit = 32
 
 type kexDHGexInitMsg struct {
-	X *big.Int `sshtype:"32"`
+	X *big.Int `sshtype:"32" json:"x"`
 }
 
 const msgKexDHGexReply = 33
 
 type kexDHGexReplyMsg struct {
-	HostKey   []byte `sshtype:"33"`
-	Y         *big.Int
-	Signature []byte
+	HostKey   []byte   `sshtype:"33" json:"hostKey"`
+	Y         *big.Int `json:"y"`
+	Signature []byte   `json:"signature"`
 }
 
 const msgKexDHGexRequest = 34
 
 type kexDHGexRequestMsg struct {
-	MinBits      uint32 `sshtype:"34"`
-	PreferedBits uint32
-	MaxBits      uint32
+	MinBits      uint32 `sshtype:"34" json:"minBits"`
+	PreferedBits uint32 `json:"preferedBits"`
+	MaxBits      uint32 `json:"maxBits"`
 }
 
 // See RFC 4253, section 10.
 const msgServiceRequest = 5
 
 type serviceRequestMsg struct {
-	Service string `sshtype:"5"`
+	Service string `sshtype:"5" json:"service"`
 }
 
 // See RFC 4253, section 10.
 const msgServiceAccept = 6
 
 type serviceAcceptMsg struct {
-	Service string `sshtype:"6"`
+	Service string `sshtype:"6" json:"service"`
 }
 
 // See RFC 8308, section 2.3
 const msgExtInfo = 7
 
 type extInfoMsg struct {
-	NumExtensions uint32 `sshtype:"7"`
-	Payload       []byte `ssh:"rest"`
+	NumExtensions uint32 `sshtype:"7" json:"numExtensions"`
+	Payload       []byte `ssh:"rest" json:"payload"`
+}
+
+type extInfoMsgDecoded struct {
+	*extInfoMsg
+	Extensions map[string]string `json:"extensions"`
+	Error      string            `json:"error,omitempty"`
 }
 
 // See RFC 4252, section 5.
 const msgUserAuthRequest = 50
 
 type userAuthRequestMsg struct {
-	User    string `sshtype:"50"`
-	Service string
-	Method  string
-	Payload []byte `ssh:"rest"`
+	User    string `sshtype:"50" json:"user"`
+	Service string `json:"service"`
+	Method  string `json:"method"`
+	Payload []byte `ssh:"rest" json:"payload"`
 }
 
 // Used for debug printouts of packets.
@@ -167,8 +173,8 @@ type userAuthSuccessMsg struct {
 const msgUserAuthFailure = 51
 
 type userAuthFailureMsg struct {
-	Methods        []string `sshtype:"51"`
-	PartialSuccess bool
+	Methods        []string `sshtype:"51" json:"methods"`
+	PartialSuccess bool     `json:"partialSuccess"`
 }
 
 // See RFC 4252, section 5.1
@@ -178,9 +184,9 @@ const msgUserAuthSuccess = 52
 const msgUserAuthBanner = 53
 
 type userAuthBannerMsg struct {
-	Message string `sshtype:"53"`
+	Message string `sshtype:"53" json:"message"`
 	// unused, but required to allow message parsing
-	Language string
+	Language string `json:"language"`
 }
 
 // See RFC 4256, section 3.2
@@ -188,22 +194,22 @@ const msgUserAuthInfoRequest = 60
 const msgUserAuthInfoResponse = 61
 
 type userAuthInfoRequestMsg struct {
-	Name        string `sshtype:"60"`
-	Instruction string
-	Language    string
-	NumPrompts  uint32
-	Prompts     []byte `ssh:"rest"`
+	Name        string `sshtype:"60" json:"name"`
+	Instruction string `json:"instruction"`
+	Language    string `json:"language"`
+	NumPrompts  uint32 `json:"numPrompts"`
+	Prompts     []byte `ssh:"rest" json:"prompts"`
 }
 
 // See RFC 4254, section 5.1.
 const msgChannelOpen = 90
 
 type channelOpenMsg struct {
-	ChanType         string `sshtype:"90"`
-	PeersID          uint32
-	PeersWindow      uint32
-	MaxPacketSize    uint32
-	TypeSpecificData []byte `ssh:"rest"`
+	ChanType         string `sshtype:"90" json:"chanType"`
+	PeersID          uint32 `json:"peersID"`
+	PeersWindow      uint32 `json:"peersWindow"`
+	MaxPacketSize    uint32 `json:"maxPacketSize"`
+	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData,omitempty"`
 }
 
 const msgChannelExtendedData = 95
@@ -211,156 +217,166 @@ const msgChannelData = 94
 
 // Used for debug print outs of packets.
 type channelDataMsg struct {
-	PeersID uint32 `sshtype:"94"`
-	Length  uint32
-	Rest    []byte `ssh:"rest"`
+	PeersID uint32 `sshtype:"94" json:"peersID"`
+	Length  uint32 `json:"length"`
+	Rest    []byte `ssh:"rest" json:"rest"`
+}
+
+type channelDataMsgDebug struct {
+	*channelDataMsg
+	RestStr string `json:"restStr,omitempty"`
 }
 
 // See RFC 4254, section 5.1.
 const msgChannelOpenConfirm = 91
 
 type channelOpenConfirmMsg struct {
-	PeersID          uint32 `sshtype:"91"`
-	MyID             uint32
-	MyWindow         uint32
-	MaxPacketSize    uint32
-	TypeSpecificData []byte `ssh:"rest"`
+	PeersID          uint32 `sshtype:"91" json:"peersID"`
+	MyID             uint32 `json:"myID"`
+	MyWindow         uint32 `json:"myWindow"`
+	MaxPacketSize    uint32 `json:"maxPacketSize"`
+	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData,omitempty"`
 }
 
 // See RFC 4254, section 5.1.
 const msgChannelOpenFailure = 92
 
 type channelOpenFailureMsg struct {
-	PeersID  uint32 `sshtype:"92"`
-	Reason   RejectionReason
-	Message  string
-	Language string
+	PeersID  uint32          `sshtype:"92" json:"peersID"`
+	Reason   RejectionReason `json:"reason"`
+	Message  string          `json:"message"`
+	Language string          `json:"language"`
 }
 
 const msgChannelRequest = 98
 
 type channelRequestMsg struct {
-	PeersID             uint32 `sshtype:"98"`
-	Request             string
-	WantReply           bool
-	RequestSpecificData []byte `ssh:"rest"`
+	PeersID             uint32 `sshtype:"98" json:"peersID"`
+	Request             string `json:"request"`
+	WantReply           bool   `json:"wantReply"`
+	RequestSpecificData []byte `ssh:"rest" json:"requestSpecificData"`
 }
 
 // See RFC 4254, section 5.4.
 const msgChannelSuccess = 99
 
 type channelRequestSuccessMsg struct {
-	PeersID uint32 `sshtype:"99"`
+	PeersID uint32 `sshtype:"99" json:"peersID"`
 }
 
 // See RFC 4254, section 5.4.
 const msgChannelFailure = 100
 
 type channelRequestFailureMsg struct {
-	PeersID uint32 `sshtype:"100"`
+	PeersID uint32 `sshtype:"100" json:"peersID"`
 }
 
 // See RFC 4254, section 5.3
 const msgChannelClose = 97
 
 type channelCloseMsg struct {
-	PeersID uint32 `sshtype:"97"`
+	PeersID uint32 `sshtype:"97" json:"peersID"`
 }
 
 // See RFC 4254, section 5.3
 const msgChannelEOF = 96
 
 type channelEOFMsg struct {
-	PeersID uint32 `sshtype:"96"`
+	PeersID uint32 `sshtype:"96" json:"peersID"`
 }
 
 // See RFC 4254, section 4
 const msgGlobalRequest = 80
 
 type globalRequestMsg struct {
-	Type      string `sshtype:"80"`
-	WantReply bool
-	Data      []byte `ssh:"rest"`
+	Type      string `sshtype:"80" json:"type"`
+	WantReply bool   `json:"wantReply"`
+	Data      []byte `ssh:"rest" json:"data,omitempty"`
+}
+
+type globalRequestMsgDebug struct {
+	*globalRequestMsg
+	DataStr string `json:"dataStr,omitempty"`
 }
 
 // See RFC 4254, section 4
 const msgRequestSuccess = 81
 
 type globalRequestSuccessMsg struct {
-	Data []byte `ssh:"rest" sshtype:"81"`
+	Data []byte `ssh:"rest" sshtype:"81" json:"data,omitempty"`
 }
 
 // See RFC 4254, section 4
 const msgRequestFailure = 82
 
 type globalRequestFailureMsg struct {
-	Data []byte `ssh:"rest" sshtype:"82"`
+	Data []byte `ssh:"rest" sshtype:"82" json:"data,omitempty"`
 }
 
 // See RFC 4254, section 5.2
 const msgChannelWindowAdjust = 93
 
 type windowAdjustMsg struct {
-	PeersID         uint32 `sshtype:"93"`
-	AdditionalBytes uint32
+	PeersID         uint32 `sshtype:"93" json:"peersID"`
+	AdditionalBytes uint32 `json:"additionalBytes"`
 }
 
 // See RFC 4252, section 7
 const msgUserAuthPubKeyOk = 60
 
 type userAuthPubKeyOkMsg struct {
-	Algo   string `sshtype:"60"`
-	PubKey []byte
+	Algo   string `sshtype:"60" json:"algo"`
+	PubKey []byte `json:"pubKey"`
 }
 
 // See RFC 4462, section 3
 const msgUserAuthGSSAPIResponse = 60
 
 type userAuthGSSAPIResponse struct {
-	SupportMech []byte `sshtype:"60"`
+	SupportMech []byte `sshtype:"60" json:"supportMech"`
 }
 
 const msgUserAuthGSSAPIToken = 61
 
 type userAuthGSSAPIToken struct {
-	Token []byte `sshtype:"61"`
+	Token []byte `sshtype:"61" json:"token"`
 }
 
 const msgUserAuthGSSAPIMIC = 66
 
 type userAuthGSSAPIMIC struct {
-	MIC []byte `sshtype:"66"`
+	MIC []byte `sshtype:"66" json:"mic"`
 }
 
 // See RFC 4462, section 3.9
 const msgUserAuthGSSAPIErrTok = 64
 
 type userAuthGSSAPIErrTok struct {
-	ErrorToken []byte `sshtype:"64"`
+	ErrorToken []byte `sshtype:"64" json:"errorToken"`
 }
 
 // See RFC 4462, section 3.8
 const msgUserAuthGSSAPIError = 65
 
 type userAuthGSSAPIError struct {
-	MajorStatus uint32 `sshtype:"65"`
-	MinorStatus uint32
-	Message     string
-	LanguageTag string
+	MajorStatus uint32 `sshtype:"65" json:"majorStatus"`
+	MinorStatus uint32 `json:"minorStatus"`
+	Message     string `json:"message"`
+	LanguageTag string `json:"languageTag"`
 }
 
 // Transport layer OpenSSH extension. See [PROTOCOL], section 1.9
 const msgPing = 192
 
 type pingMsg struct {
-	Data string `sshtype:"192"`
+	Data string `sshtype:"192" json:"data"`
 }
 
 // Transport layer OpenSSH extension. See [PROTOCOL], section 1.9
 const msgPong = 193
 
 type pongMsg struct {
-	Data string `sshtype:"193"`
+	Data string `sshtype:"193" json:"data"`
 }
 
 // typeTags returns the possible type bytes for the given reflect.Type, which
@@ -793,6 +809,115 @@ func marshalString(to []byte, s []byte) []byte {
 }
 
 var bigIntType = reflect.TypeOf((*big.Int)(nil))
+
+// Decode a packet into its corresponding message.
+func decodeDebug(packet []byte) (interface{}, error) {
+	var msg interface{}
+	switch packet[0] {
+	case msgDisconnect:
+		msg = new(disconnectMsg)
+	case msgServiceRequest:
+		msg = new(serviceRequestMsg)
+	case msgServiceAccept:
+		msg = new(serviceAcceptMsg)
+	case msgExtInfo:
+		msg = new(extInfoMsg)
+	case msgKexInit:
+		msg = new(kexInitMsg)
+	case msgKexDHInit:
+		msg = new(kexDHInitMsg)
+	case msgKexDHReply:
+		msg = new(kexDHReplyMsg)
+	case msgUserAuthRequest:
+		msg = new(userAuthRequestMsg)
+	case msgUserAuthSuccess:
+		return new(userAuthSuccessMsg), nil
+	case msgUserAuthFailure:
+		msg = new(userAuthFailureMsg)
+	case msgUserAuthPubKeyOk:
+		msg = new(userAuthPubKeyOkMsg)
+	case msgGlobalRequest:
+		msg = new(globalRequestMsg)
+	case msgRequestSuccess:
+		msg = new(globalRequestSuccessMsg)
+	case msgRequestFailure:
+		msg = new(globalRequestFailureMsg)
+	case msgChannelOpen:
+		msg = new(channelOpenMsg)
+	case msgChannelData:
+		msg = new(channelDataMsg)
+	case msgChannelOpenConfirm:
+		msg = new(channelOpenConfirmMsg)
+	case msgChannelOpenFailure:
+		msg = new(channelOpenFailureMsg)
+	case msgChannelWindowAdjust:
+		msg = new(windowAdjustMsg)
+	case msgChannelEOF:
+		msg = new(channelEOFMsg)
+	case msgChannelClose:
+		msg = new(channelCloseMsg)
+	case msgChannelRequest:
+		msg = new(channelRequestMsg)
+	case msgChannelSuccess:
+		msg = new(channelRequestSuccessMsg)
+	case msgChannelFailure:
+		msg = new(channelRequestFailureMsg)
+	case msgUserAuthGSSAPIToken:
+		msg = new(userAuthGSSAPIToken)
+	case msgUserAuthGSSAPIMIC:
+		msg = new(userAuthGSSAPIMIC)
+	case msgUserAuthGSSAPIErrTok:
+		msg = new(userAuthGSSAPIErrTok)
+	case msgUserAuthGSSAPIError:
+		msg = new(userAuthGSSAPIError)
+	default:
+		return nil, unexpectedMessageError(0, packet[0])
+	}
+	if err := Unmarshal(packet, msg); err != nil {
+		return nil, err
+	}
+
+	switch t := msg.(type) {
+	case *globalRequestMsg:
+		msg = &globalRequestMsgDebug{
+			globalRequestMsg: t,
+			DataStr:          string(t.Data),
+		}
+	case *channelDataMsg:
+		msg = &channelDataMsgDebug{
+			channelDataMsg: t,
+			RestStr:        string(t.Rest),
+		}
+	case *extInfoMsg:
+		extensions, err := func() (map[string]string, error) {
+			payload := t.Payload
+			extensions := make(map[string]string)
+			for i := uint32(0); i < t.NumExtensions; i++ {
+				name, rest, ok := parseString(payload)
+				if !ok {
+					return nil, parseError(msgExtInfo)
+				}
+				value, rest, ok := parseString(rest)
+				if !ok {
+					return nil, parseError(msgExtInfo)
+				}
+				extensions[string(name)] = string(value)
+				payload = rest
+			}
+			return extensions, nil
+		}()
+		decodedMsg := &extInfoMsgDecoded{
+			extInfoMsg: t,
+			Extensions: extensions,
+		}
+		if err != nil {
+			decodedMsg.Error = err.Error()
+		}
+		msg = decodedMsg
+	}
+
+	return msg, nil
+}
 
 // Decode a packet into its corresponding message.
 func decode(packet []byte) (interface{}, error) {
