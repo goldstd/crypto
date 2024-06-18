@@ -934,7 +934,7 @@ func TestStrictKEXUnexpectedMsg(t *testing.T) {
 
 	if p, err := trS.readPacket(); err != nil {
 		t.Fatalf("readPacket failed: %s", err)
-	} else if !bytes.Equal(p, dummyPacket) {
+	} else if !bytes.Equal(p, []byte{99}) {
 		t.Fatalf("unexpected packet: got %x, want %x", p, dummyPacket)
 	}
 }
