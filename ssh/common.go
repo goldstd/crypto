@@ -37,6 +37,7 @@ var supportedCiphers = []string{
 
 // preferredCiphers specifies the default preference for ciphers.
 var preferredCiphers = []string{
+	"sm4-ctr",
 	"aes128-gcm@openssh.com", gcm256CipherID,
 	chacha20Poly1305ID,
 	"aes128-ctr", "aes192-ctr", "aes256-ctr",
@@ -305,6 +306,9 @@ type Config struct {
 	// The allowed MAC algorithms. If unspecified then a sensible default is
 	// used. Unsupported values are silently ignored.
 	MACs []string
+
+	// AlgorithmsCallback 定义了，算法协商后，回调函数，用于打印协商后的算法
+	AlgorithmsCallback AlgorithmsCallback
 }
 
 // SetDefaults sets sensible values for unset fields in config. This is

@@ -658,6 +658,10 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 		log.Printf("AgreedAlgorithms: %s", JSON(t.Algorithms()))
 	}
 
+	if t.config.AlgorithmsCallback != nil {
+		t.config.AlgorithmsCallback(t.Algorithms())
+	}
+
 	if t.sessionID == nil && ((isClient && contains(serverInit.KexAlgos, kexStrictServer)) || (!isClient && contains(clientInit.KexAlgos, kexStrictClient))) {
 		t.strictMode = true
 		if err := t.conn.setStrictMode(); err != nil {
