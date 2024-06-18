@@ -152,7 +152,7 @@ func Pick1(a interface{}, _ error) interface{} {
 
 func (s *connectionState) readPacket(r *bufio.Reader, strictMode bool) ([]byte, error) {
 	packet, err := s.packetCipher.readCipherPacket(s.seqNum, r)
-	if Debug {
+	if len(packet) > 0 && Debug {
 		log.Printf("readPacket: %s", JSON(map[string]any{
 			"seqNum":    s.seqNum,
 			"msgName":   parseMsgName(packet[0]),
@@ -338,7 +338,7 @@ func newPacketCipher(d direction, algs directionAlgorithms, kex *kexResult) (pac
 func generateKeyMaterial(out, tag []byte, r *kexResult) {
 	var digestsSoFar []byte
 
-	h := r.Hash.New()
+	h := r.Hash()
 	for len(out) > 0 {
 		h.Reset()
 		h.Write(r.K)

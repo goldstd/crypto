@@ -60,10 +60,10 @@ type kexInitMsg struct {
 	MACsServerClient        []string `json:"MACsServerClient"`
 	CompressionClientServer []string `json:"compressionClientServer"`
 	CompressionServerClient []string `json:"compressionServerClient"`
-	LanguagesClientServer   []string `json:"languagesClientServer,omitempty"`
-	LanguagesServerClient   []string `json:"languagesServerClient,omitempty"`
-	FirstKexFollows         bool     `json:"firstKexFollows,omitempty"`
-	Reserved                uint32   `json:"reserved,omitempty"`
+	LanguagesClientServer   []string `json:"languagesClientServer"`
+	LanguagesServerClient   []string `json:"languagesServerClient"`
+	FirstKexFollows         bool     `json:"firstKexFollows"`
+	Reserved                uint32   `json:"reserved"`
 }
 
 // See RFC 4253, section 8.
@@ -152,7 +152,7 @@ type extInfoMsg struct {
 type extInfoMsgDecoded struct {
 	*extInfoMsg
 	Extensions map[string]string `json:"extensions"`
-	Error      string            `json:"error,omitempty"`
+	Error      string            `json:"error"`
 }
 
 // See RFC 4252, section 5.
@@ -209,7 +209,7 @@ type channelOpenMsg struct {
 	PeersID          uint32 `json:"peersID"`
 	PeersWindow      uint32 `json:"peersWindow"`
 	MaxPacketSize    uint32 `json:"maxPacketSize"`
-	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData,omitempty"`
+	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData"`
 }
 
 const msgChannelExtendedData = 95
@@ -224,7 +224,7 @@ type channelDataMsg struct {
 
 type channelDataMsgDebug struct {
 	*channelDataMsg
-	RestStr string `json:"restStr,omitempty"`
+	RestStr string `json:"restStr"`
 }
 
 // See RFC 4254, section 5.1.
@@ -235,7 +235,7 @@ type channelOpenConfirmMsg struct {
 	MyID             uint32 `json:"myID"`
 	MyWindow         uint32 `json:"myWindow"`
 	MaxPacketSize    uint32 `json:"maxPacketSize"`
-	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData,omitempty"`
+	TypeSpecificData []byte `ssh:"rest" json:"typeSpecificData"`
 }
 
 // See RFC 4254, section 5.1.
@@ -291,26 +291,26 @@ const msgGlobalRequest = 80
 type globalRequestMsg struct {
 	Type      string `sshtype:"80" json:"type"`
 	WantReply bool   `json:"wantReply"`
-	Data      []byte `ssh:"rest" json:"data,omitempty"`
+	Data      []byte `ssh:"rest" json:"data"`
 }
 
 type globalRequestMsgDebug struct {
 	*globalRequestMsg
-	DataStr string `json:"dataStr,omitempty"`
+	DataStr string `json:"dataStr"`
 }
 
 // See RFC 4254, section 4
 const msgRequestSuccess = 81
 
 type globalRequestSuccessMsg struct {
-	Data []byte `ssh:"rest" sshtype:"81" json:"data,omitempty"`
+	Data []byte `ssh:"rest" sshtype:"81" json:"data"`
 }
 
 // See RFC 4254, section 4
 const msgRequestFailure = 82
 
 type globalRequestFailureMsg struct {
-	Data []byte `ssh:"rest" sshtype:"82" json:"data,omitempty"`
+	Data []byte `ssh:"rest" sshtype:"82" json:"data"`
 }
 
 // See RFC 4254, section 5.2

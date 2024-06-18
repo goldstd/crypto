@@ -43,7 +43,7 @@ func TestPacketCiphers(t *testing.T) {
 }
 
 func testPacketCipher(t *testing.T, cipher, mac string) {
-	kr := &kexResult{Hash: crypto.SHA1}
+	kr := &kexResult{Hash: crypto.SHA1.New}
 	algs := directionAlgorithms{
 		Cipher:      cipher,
 		MAC:         mac,
@@ -76,7 +76,7 @@ func testPacketCipher(t *testing.T, cipher, mac string) {
 }
 
 func TestCBCOracleCounterMeasure(t *testing.T) {
-	kr := &kexResult{Hash: crypto.SHA1}
+	kr := &kexResult{Hash: crypto.SHA1.New}
 	algs := directionAlgorithms{
 		Cipher:      aes128cbcID,
 		MAC:         "hmac-sha1",
@@ -203,7 +203,7 @@ func TestCVE202143565(t *testing.T) {
 	for _, tc := range tests {
 		mac := "hmac-sha2-256"
 
-		kr := &kexResult{Hash: crypto.SHA1}
+		kr := &kexResult{Hash: crypto.SHA1.New}
 		algs := directionAlgorithms{
 			Cipher:      tc.cipher,
 			MAC:         mac,

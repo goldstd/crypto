@@ -13,10 +13,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/big"
 
 	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/sm2"
+	"golang.org/x/crypto/sm3"
 )
 
 const (
@@ -27,6 +30,7 @@ const (
 	kexAlgoECDH256                = "ecdh-sha2-nistp256"
 	kexAlgoECDH384                = "ecdh-sha2-nistp384"
 	kexAlgoECDH521                = "ecdh-sha2-nistp521"
+	kexAlgoSM2SM3                 = "sm2-sm3"
 	kexAlgoCurve25519SHA256LibSSH = "curve25519-sha256@libssh.org"
 	kexAlgoCurve25519SHA256       = "curve25519-sha256"
 
@@ -54,7 +58,7 @@ type kexResult struct {
 	// A cryptographic hash function that matches the security
 	// level of the key exchange algorithm. It is used for
 	// calculating H, and for deriving keys from H and K.
-	Hash crypto.Hash
+	Hash func() hash.Hash `json:"-"`
 
 	// The session ID, which is the first H computed. This is used
 	// to derive key material inside the transport.
@@ -149,7 +153,7 @@ func (group *dhGroup) Client(c packetConn, randSource io.Reader, magics *handsha
 		K:         K,
 		HostKey:   kexDHReply.HostKey,
 		Signature: kexDHReply.Signature,
-		Hash:      group.hashFunc,
+		Hash:      group.hashFunc.New,
 	}, nil
 }
 
@@ -213,7 +217,7 @@ func (group *dhGroup) Server(c packetConn, randSource io.Reader, magics *handsha
 		K:         K,
 		HostKey:   hostKeyBytes,
 		Signature: sig,
-		Hash:      group.hashFunc,
+		Hash:      group.hashFunc.New,
 	}, err
 }
 
@@ -256,7 +260,7 @@ func (kex *ecdh) Client(c packetConn, rand io.Reader, magics *handshakeMagics) (
 	// generate shared secret
 	secret, _ := kex.curve.ScalarMult(x, y, ephKey.D.Bytes())
 
-	h := ecHash(kex.curve).New()
+	h := ecHash(kex.curve)()
 	magics.write(h)
 	writeString(h, reply.HostKey)
 	writeString(h, kexInit.ClientPubKey)
@@ -347,7 +351,7 @@ func (kex *ecdh) Server(c packetConn, rand io.Reader, magics *handshakeMagics, p
 	// generate shared secret
 	secret, _ := kex.curve.ScalarMult(clientX, clientY, ephKey.D.Bytes())
 
-	h := ecHash(kex.curve).New()
+	h := ecHash(kex.curve)()
 	magics.write(h)
 	writeString(h, hostKeyBytes)
 	writeString(h, kexECDHInit.ClientPubKey)
@@ -388,15 +392,18 @@ func (kex *ecdh) Server(c packetConn, rand io.Reader, magics *handshakeMagics, p
 
 // ecHash returns the hash to match the given elliptic curve, see RFC
 // 5656, section 6.2.1
-func ecHash(curve elliptic.Curve) crypto.Hash {
+func ecHash(curve elliptic.Curve) func() hash.Hash {
+	if curve.Params().Name == "SM2-P-256" {
+		return sm3.New
+	}
 	bitSize := curve.Params().BitSize
 	switch {
 	case bitSize <= 256:
-		return crypto.SHA256
+		return crypto.SHA256.New
 	case bitSize <= 384:
-		return crypto.SHA384
+		return crypto.SHA384.New
 	}
-	return crypto.SHA512
+	return crypto.SHA512.New
 }
 
 var kexAlgoMap = map[string]kexAlgorithm{}
@@ -462,9 +469,10 @@ func init() {
 		hashFunc: crypto.SHA512,
 	}
 
-	kexAlgoMap[kexAlgoECDH521] = &ecdh{elliptic.P521()}
-	kexAlgoMap[kexAlgoECDH384] = &ecdh{elliptic.P384()}
-	kexAlgoMap[kexAlgoECDH256] = &ecdh{elliptic.P256()}
+	kexAlgoMap[kexAlgoECDH521] = &ecdh{curve: elliptic.P521()}
+	kexAlgoMap[kexAlgoECDH384] = &ecdh{curve: elliptic.P384()}
+	kexAlgoMap[kexAlgoECDH256] = &ecdh{curve: elliptic.P256()}
+	kexAlgoMap[kexAlgoSM2SM3] = &ecdh{curve: sm2.P256Sm2()}
 	kexAlgoMap[kexAlgoCurve25519SHA256] = &curve25519sha256{}
 	kexAlgoMap[kexAlgoCurve25519SHA256LibSSH] = &curve25519sha256{}
 	kexAlgoMap[kexAlgoDHGEXSHA1] = &dhGEXSHA{hashFunc: crypto.SHA1}
@@ -538,7 +546,7 @@ func (kex *curve25519sha256) Client(c packetConn, rand io.Reader, magics *handsh
 		K:         K,
 		HostKey:   reply.HostKey,
 		Signature: reply.Signature,
-		Hash:      crypto.SHA256,
+		Hash:      crypto.SHA256.New,
 	}, nil
 }
 
@@ -601,7 +609,7 @@ func (kex *curve25519sha256) Server(c packetConn, rand io.Reader, magics *handsh
 		K:         K,
 		HostKey:   hostKeyBytes,
 		Signature: sig,
-		Hash:      crypto.SHA256,
+		Hash:      crypto.SHA256.New,
 	}, nil
 }
 
@@ -705,7 +713,7 @@ func (gex *dhGEXSHA) Client(c packetConn, randSource io.Reader, magics *handshak
 		K:         K,
 		HostKey:   kexDHGexReply.HostKey,
 		Signature: kexDHGexReply.Signature,
-		Hash:      gex.hashFunc,
+		Hash:      gex.hashFunc.New,
 	}, nil
 }
 
@@ -801,6 +809,6 @@ func (gex dhGEXSHA) Server(c packetConn, randSource io.Reader, magics *handshake
 		K:         K,
 		HostKey:   hostKeyBytes,
 		Signature: sig,
-		Hash:      gex.hashFunc,
+		Hash:      gex.hashFunc.New,
 	}, err
 }

@@ -27,7 +27,7 @@ const (
 
 // supportedCiphers lists ciphers we support but might not recommend.
 var supportedCiphers = []string{
-	"sm4128-ctr", "aes128-ctr", "aes192-ctr", "aes256-ctr",
+	"sm4-ctr", "aes128-ctr", "aes192-ctr", "aes256-ctr",
 	"aes128-gcm@openssh.com", gcm256CipherID,
 	chacha20Poly1305ID,
 	"arcfour256", "arcfour128", "arcfour",
@@ -51,6 +51,7 @@ var supportedKexAlgos = []string{
 	kexAlgoECDH256, kexAlgoECDH384, kexAlgoECDH521,
 	kexAlgoDH14SHA256, kexAlgoDH16SHA512, kexAlgoDH14SHA1,
 	kexAlgoDH1SHA1,
+	kexAlgoSM2SM3,
 }
 
 // serverForbiddenKexAlgos contains key exchange algorithms, that are forbidden
@@ -64,6 +65,7 @@ var serverForbiddenKexAlgos = map[string]struct{}{
 // algorithms in preference order. The diffie-hellman-group16-sha512 algorithm
 // is disabled by default because it is a bit slower than the others.
 var preferredKexAlgos = []string{
+	kexAlgoSM2SM3,
 	kexAlgoCurve25519SHA256, kexAlgoCurve25519SHA256LibSSH,
 	kexAlgoECDH256, kexAlgoECDH384, kexAlgoECDH521,
 	kexAlgoDH14SHA256, kexAlgoDH14SHA1,

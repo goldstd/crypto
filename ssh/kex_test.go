@@ -7,9 +7,10 @@ package ssh
 // Key exchange tests.
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
-	"reflect"
 	"sync"
 	"testing"
 )
@@ -55,14 +56,26 @@ func TestKexes(t *testing.T) {
 					if serverRes.err != nil {
 						t.Errorf("server: %v", serverRes.err)
 					}
-					if !reflect.DeepEqual(clientRes.result, serverRes.result) {
-						t.Errorf("kex %q: mismatch %#v, %#v", name, clientRes.result, serverRes.result)
+					if aj, bj, yes := DeepEqual(clientRes.result, serverRes.result); !yes {
+						t.Errorf("kex %q: mismatch %s, %s", name, aj, bj)
 					}
 				}()
 			}
 			wg.Wait()
 		})
 	}
+}
+
+func DeepEqual(a, b any) (ajson, bjson []byte, equlas bool) {
+	aj, err := json.Marshal(a)
+	if err != nil {
+		return []byte(err.Error()), nil, false
+	}
+	bj, err := json.Marshal(b)
+	if err != nil {
+		return nil, []byte(err.Error()), false
+	}
+	return aj, bj, bytes.Equal(aj, bj)
 }
 
 func BenchmarkKexes(b *testing.B) {
