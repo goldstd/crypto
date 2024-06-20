@@ -65,10 +65,10 @@ var serverForbiddenKexAlgos = map[string]struct{}{
 // algorithms in preference order. The diffie-hellman-group16-sha512 algorithm
 // is disabled by default because it is a bit slower than the others.
 var preferredKexAlgos = []string{
-	kexAlgoSM2SM3,
 	kexAlgoCurve25519SHA256, kexAlgoCurve25519SHA256LibSSH,
 	kexAlgoECDH256, kexAlgoECDH384, kexAlgoECDH521,
 	kexAlgoDH14SHA256, kexAlgoDH14SHA1,
+	kexAlgoSM2SM3,
 }
 
 // supportedHostKeyAlgos specifies the supported host-key algorithms (i.e. methods
