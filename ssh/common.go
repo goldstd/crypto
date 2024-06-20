@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"sync"
 
@@ -166,8 +165,11 @@ func findCommon(what string, client, server []string) (common string, err error)
 	for _, c := range client {
 		for _, s := range server {
 			if c == s {
-				if Debug {
-					log.Printf("findCommon %q: %s", what, c)
+				if Debug > 0 {
+					DebugLog(2, "findCommon", map[string]any{
+						"what":   what,
+						"common": c,
+					}, nil)
 				}
 				return c, nil
 			}

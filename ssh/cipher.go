@@ -13,13 +13,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash"
-	"io"
-	"log"
-
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/internal/poly1305"
 	"golang.org/x/crypto/sm4"
+	"hash"
+	"io"
 )
 
 const (
@@ -164,18 +162,15 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	cp := &CipherPacket{
 		SeqNum: seqNum,
 	}
-	sp := Packet{
-		Type:  PacketTypeCipherPacket,
-		Value: cp,
-	}
-	if Debug {
+	sp := LogPacket{}
+	if Debug > 0 {
 		defer func() {
-			log.Printf("Read %s", JSON(sp))
+			DebugLog(0, "cipherPacket", cp, sp.Error)
 		}()
 	}
 
 	if _, err := io.ReadFull(r, s.prefix[:]); err != nil {
-		sp.Error = err.Error()
+		sp.Error = err
 		return nil, err
 	}
 
@@ -208,13 +203,13 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 
 	if length <= paddingLength+1 {
 		err := errors.New("ssh: invalid packet length, packet too small")
-		sp.Error = err.Error()
+		sp.Error = err
 		return nil, err
 	}
 
 	if length > maxPacket {
 		err := errors.New("ssh: invalid packet length, packet too large")
-		sp.Error = err.Error()
+		sp.Error = err
 		return nil, err
 	}
 
@@ -250,7 +245,7 @@ func (s *streamPacketCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byt
 	}
 	payload := s.packetData[:length-paddingLength-1]
 
-	if Debug {
+	if Debug > 0 {
 		cp.Payload = payload
 		cp.PayloadLen = len(payload)
 		cp.MsgCode = payload[0]
@@ -350,22 +345,19 @@ func (s *streamPacketCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand 
 		PayloadLen: len(packet),
 	}
 
-	sp := Packet{
-		Type:  PacketTypeCipherPacket,
-		Value: cp,
-	}
-	if Debug {
+	sp := LogPacket{}
+	if Debug > 0 {
 		cp.MsgCode = packet[0]
 		cp.MsgName = parseMsgName(packet[0])
 		cp.Msg, _ = decodeDebug(packet)
 
 		defer func() {
-			log.Printf("Write %s", JSON(sp))
+			DebugLog(1, "cipherPacket", cp, sp.Error)
 		}()
 	}
 	if len(packet) > maxPacket {
 		err := errors.New("ssh: packet too large")
-		sp.Error = err.Error()
+		sp.Error = err
 		return err
 	}
 

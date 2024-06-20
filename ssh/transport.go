@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 )
 
 // debugTransport if set, will print packet types as they go over the
@@ -152,14 +151,14 @@ func Pick1(a interface{}, _ error) interface{} {
 
 func (s *connectionState) readPacket(r *bufio.Reader, strictMode bool) ([]byte, error) {
 	packet, err := s.packetCipher.readCipherPacket(s.seqNum, r)
-	if len(packet) > 0 && Debug {
-		log.Printf("readPacket: %s", JSON(map[string]any{
+	if len(packet) > 0 && Debug > 0 {
+		DebugLog(0, "readPacket", map[string]any{
 			"seqNum":    s.seqNum,
 			"msgName":   parseMsgName(packet[0]),
 			"msg":       Pick1(decodeDebug(packet)),
 			"packet":    packet,
 			"packetLen": len(packet),
-		}))
+		}, nil)
 	}
 
 	s.seqNum++
@@ -211,14 +210,14 @@ func (t *transport) writePacket(packet []byte) error {
 }
 
 func (s *connectionState) writePacket(w *bufio.Writer, rand io.Reader, packet []byte, strictMode bool) error {
-	if Debug {
-		log.Printf("writePacket: %s", JSON(map[string]any{
+	if Debug > 0 {
+		DebugLog(1, "writePacket", map[string]any{
 			"seqNum":    s.seqNum,
 			"msgName":   parseMsgName(packet[0]),
 			"msg":       Pick1(decodeDebug(packet)),
 			"packet":    packet,
 			"packetLen": len(packet),
-		}))
+		}, nil)
 	}
 
 	changeKeys := len(packet) > 0 && packet[0] == msgNewKeys
@@ -313,7 +312,7 @@ func newPacketCipher(d direction, algs directionAlgorithms, kex *kexResult) (pac
 
 	cipher, err := cipherModes[algs.Cipher].create(key, iv, macKey, algs)
 
-	if Debug {
+	if Debug > 0 {
 		ck := CipherKey{
 			IV: iv, Key: key, MacKey: macKey,
 			CipherType: fmt.Sprintf("%T", cipher),
@@ -327,7 +326,7 @@ func newPacketCipher(d direction, algs directionAlgorithms, kex *kexResult) (pac
 			ck.Direction = fmt.Sprintf("%#v", d)
 		}
 
-		log.Printf("newPacketCipher: %s", JSON(ck))
+		DebugLog(2, "newPacketCipher", ck, nil)
 	}
 
 	return cipher, err
@@ -362,32 +361,14 @@ func generateKeyMaterial(out, tag []byte, r *kexResult) {
 
 const packageVersion = "SSH-2.0-Go"
 
-type Packet struct {
-	Type  PacketType `json:"type"`
-	Value any        `json:"value,omitempty"`
-	Error string     `json:"error,omitempty"`
+type LogPacket struct {
+	Error error
 }
-
-type PacketType string
-
-const (
-	PacketTypeCipherPacket PacketType = "CipherPacket"
-	PacketTypeVersionLine  PacketType = "VersionLine"
-)
 
 func JSON(v any) []byte {
 	j, _ := json.Marshal(v)
 	return j
 }
-
-func ErrorString(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
-var Debug = os.Getenv("SSH_DEBUG") == "1"
 
 // Sends and receives a version line.  The versionLine string should
 // be US ASCII, start with "SSH-2.0-", and should not include a
@@ -404,25 +385,16 @@ func exchangeVersions(rw io.ReadWriter, versionLine []byte) (them []byte, err er
 		}
 	}
 	vl := append(versionLine, '\r', '\n')
-	if Debug {
-		log.Printf("Sent %s", JSON(
-			Packet{
-				Type:  PacketTypeVersionLine,
-				Value: string(vl),
-			}))
+	if Debug > 0 {
+		DebugLog(1, "versionLine", vl, nil)
 	}
 	if _, err = rw.Write(vl); err != nil {
 		return
 	}
 
 	them, err = readVersion(rw)
-	if Debug {
-		log.Printf("Read %s", JSON(
-			Packet{
-				Type:  PacketTypeVersionLine,
-				Value: string(them) + "\r\n",
-				Error: ErrorString(err),
-			}))
+	if Debug > 0 {
+		DebugLog(0, "versionLine", string(them)+"\r\n", err)
 	}
 	return them, err
 }

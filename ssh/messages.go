@@ -224,7 +224,7 @@ type channelDataMsg struct {
 
 type channelDataMsgDebug struct {
 	*channelDataMsg
-	RestStr string `json:"restStr"`
+	Str string `json:"str"`
 }
 
 // See RFC 4254, section 5.1.
@@ -296,7 +296,7 @@ type globalRequestMsg struct {
 
 type globalRequestMsgDebug struct {
 	*globalRequestMsg
-	DataStr string `json:"dataStr"`
+	Str string `json:"str"`
 }
 
 // See RFC 4254, section 4
@@ -881,12 +881,12 @@ func decodeDebug(packet []byte) (interface{}, error) {
 	case *globalRequestMsg:
 		msg = &globalRequestMsgDebug{
 			globalRequestMsg: t,
-			DataStr:          string(t.Data),
+			Str:              string(t.Data),
 		}
 	case *channelDataMsg:
 		msg = &channelDataMsgDebug{
 			channelDataMsg: t,
-			RestStr:        string(t.Rest),
+			Str:            string(t.Rest),
 		}
 	case *extInfoMsg:
 		extensions, err := func() (map[string]string, error) {

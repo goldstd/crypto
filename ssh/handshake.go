@@ -654,8 +654,8 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 	if err != nil {
 		return err
 	}
-	if Debug {
-		log.Printf("AgreedAlgorithms: %s", JSON(t.Algorithms()))
+	if Debug > 0 {
+		DebugLog(2, "agreedAlgorithms", t.Algorithms(), nil)
 	}
 
 	if t.config.AlgorithmsCallback != nil {
@@ -709,8 +709,8 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 	}
 	result.SessionID = t.sessionID
 
-	if Debug {
-		log.Printf("kexResult: %s", JSON(result))
+	if Debug > 0 {
+		DebugLog(2, "kexResult", result, nil)
 	}
 
 	if err := t.conn.prepareKeyChange(t.algorithms, result); err != nil {
